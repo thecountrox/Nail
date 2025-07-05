@@ -3,23 +3,13 @@ import requests
 import json
 import os
 
-# --- Configuration ---
-# IMPORTANT: Replace with the actual IP address or hostname of your remote Ollama server.
-# Ensure your remote Ollama server is configured to accept remote connections (OLLAMA_HOST=0.0.0.0)
-# and its firewall allows incoming connections on port 11434.
-REMOTE_OLLAMA_HOST = os.getenv("OLLAMA_REMOTE_HOST", "http://192.168.1.15:11434") # Default to localhost if not set
-os.environ["OLLAMA_HOST"] = REMOTE_OLLAMA_HOST # Set for the ollama client library
+REMOTE_OLLAMA_HOST = os.getenv("OLLAMA_REMOTE_HOST", "http://192.168.1.15:11434")
+os.environ["OLLAMA_HOST"] = REMOTE_OLLAMA_HOST
 
-# IMPORTANT: Replace with your actual Discord Webhook URL.
-# Get this from your Discord channel settings (Integrations -> Webhooks).
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "YOUR_DISCORD_WEBHOOK_URL_HERE")
 
-# Ollama model to use for categorization and summarization
-OLLAMA_MODEL = "gemma3:1b" # Make sure this model is pulled on your remote Ollama instance
+OLLAMA_MODEL = "gemma3:1b"
 
-# --- Simulated Gmail Content (Replace with real Gmail API integration) ---
-# In a real application, you would fetch this data using the Google Gmail API.
-# This is a placeholder to demonstrate the categorization, summarization, and Discord parts.
 SIMULATED_GMAIL_CONTENT = [
     {
         "id": "email_001",
@@ -53,24 +43,17 @@ SIMULATED_GMAIL_CONTENT = [
     },
 ]
 
-# --- Ollama Client Initialization ---
 try:
     ollama_client = ollama.Client()
-    # Test connection to Ollama
     ollama_client.list()
     print(f"Successfully connected to Ollama at {REMOTE_OLLAMA_HOST}")
 except Exception as e:
     print(f"Error connecting to Ollama at {REMOTE_OLLAMA_HOST}. Please ensure it's running and accessible.")
     print(f"Details: {e}")
-    exit(1) # Exit if Ollama connection fails
+    exit(1)
 
-# --- Functions for LLM Interaction ---
 
 def categorize_email(email_content: str) -> str:
-    """
-    Categorizes the email content using Ollama.
-    Attempts to get a single, predefined category.
-    """
     prompt = (
         f"Categorize the following email content into one of these categories: "
         f"Work, Personal, Promotions, Social, Updates, Spam, Other. "
@@ -79,10 +62,8 @@ def categorize_email(email_content: str) -> str:
     try:
         response = ollama_client.generate(model=OLLAMA_MODEL, prompt=prompt, stream=False)
         category = response['response'].strip().split('\n')[0].replace('.', '').strip()
-        # Basic validation to ensure it's one of our expected categories
         valid_categories = ["Work", "Personal", "Promotions", "Social", "Updates", "Spam", "Other"]
         if category not in valid_categories:
-            # If Ollama gives something unexpected, default to "Other"
             print(f"Warning: Ollama returned unexpected category '{category}'. Defaulting to 'Other'.")
             return "Other"
         return category
@@ -91,9 +72,6 @@ def categorize_email(email_content: str) -> str:
         return "Other" # Default category on error
 
 def summarize_email(email_content: str) -> str:
-    """
-    Summarizes the email content using Ollama.
-    """
     prompt = (
         f"Summarize the following email content concisely, in one or two sentences. "
         f"Focus on the main point and key details.\n\nEmail Content: {email_content}"
@@ -106,12 +84,7 @@ def summarize_email(email_content: str) -> str:
         print(f"Error summarizing email with Ollama: {e}")
         return "Could not generate summary."
 
-# --- Discord Webhook Function ---
-
 def send_to_discord(email_details: dict, category: str, summary: str):
-    """
-    Sends email details, category, and summary to a Discord webhook.
-    """
     if DISCORD_WEBHOOK_URL == "YOUR_DISCORD_WEBHOOK_URL_HERE":
         print("\nSkipping Discord notification: Webhook URL not configured.")
         return
